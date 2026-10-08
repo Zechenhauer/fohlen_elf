@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💚 Borussia Mönchengladbach - Live Dashboard</title>
+    <title>🟢 Gladbach</title>
     
-    <!-- Perfektes App-Icon mit kleinerem, zentriertem Logo für iPhone & Android -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23070f26%22/><image href=%22https://lhusylpjnujlqomougmg.supabase.co/storage/v1/object/public/vereinslogos/gladbach.png%22 x=%2220%22 y=%2220%22 width=%2260%22 height=%2260%22 preserveAspectRatio=%22xMidYMid meet%22/></svg>">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23070f26%22/><image href=%22https://lhusylpjnujlqomougmg.supabase.co/storage/v1/object/public/vereinslogos/gladbach.png%22 x=%2220%22 y=%2220%22 width=%2260%22 height=%2260%22 preserveAspectRatio=%22xMidYMid meet%22/></svg>">
+    <!-- Perfektes Emoji-App-Icon für iPhone & Android (Ohne Ladefehler) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230b120e%22/><text x=%2250%22 y=%2270%22 font-size=%2260%22 text-anchor=%22middle%22>🟢</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230b120e%22/><text x=%2250%22 y=%2270%22 font-size=%2260%22 text-anchor=%22middle%22>🟢</text></svg>">
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #0b120e; color: #f1f5f9; }
@@ -46,19 +48,12 @@
                     BORUSSIA SPIEL LIVE (Auto-Update 15s)
                 </div>
                 
-                <!-- Zeitraum / Modus Auswahl -->
+                <!-- Spieltag Auswahl-Menü -->
                 <div class="flex items-center gap-2 bg-[#0b120e] border border-[#22422e] px-3 py-1.5 rounded-lg shadow-inner">
-                    <span class="text-xs text-slate-300 font-semibold">📅 Zeitraum:</span>
-                    <select id="timeframe-select" onchange="onTimeframeChange()" class="bg-transparent text-emerald-400 font-bold text-sm focus:outline-none cursor-pointer">
-                        <option value="next7" selected>📅 Nächste 7 Tage</option>
-                        <option value="prev7">⏮️ Vergangene 7 Tage</option>
-                        <option value="single">📆 Einzelnes Datum...</option>
+                    <span class="text-xs text-slate-300 font-semibold">📅 Spieltag:</span>
+                    <select id="matchweek-select" onchange="loadSelectedMatchweek()" class="bg-transparent text-emerald-400 font-bold text-sm focus:outline-none cursor-pointer">
+                        <!-- Dynamisch gefüllt für alle 34 Spieltage -->
                     </select>
-                </div>
-
-                <!-- Dynamisches Datumsfeld -->
-                <div id="single-date-wrapper" class="hidden items-center gap-2 bg-[#0b120e] border border-[#22422e] px-3 py-1 rounded-lg shadow-inner">
-                    <input type="date" id="single-date-input" onchange="loadBorussiaGames()" class="bg-transparent text-emerald-400 font-bold text-sm focus:outline-none cursor-pointer">
                 </div>
 
                 <button onclick="refreshAllData()" class="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-lg shadow-lg transition flex items-center gap-2 border border-emerald-400/30">
@@ -171,8 +166,31 @@
         let autoRefreshTimer = null;
         let countdownInterval = null;
         let nextGameDate = null;
+        let currentMatchweek = 6;
 
-        // Hilfsfunktion: Korrigiert unvollständige API-Namen automatisch
+        const MATCHWEEK_START_DATES = {
+            1: "20260821", 2: "20260828", 3: "20260904", 4: "20260911", 5: "20260918",
+            6: "20260925", 7: "20261002", 8: "20261016", 9: "20261023", 10: "20261030",
+            11: "20261106", 12: "20261113", 13: "20261120", 14: "20261127", 15: "20261204",
+            16: "20261211", 17: "20261218", 18: "20260115", 19: "20260122", 20: "20260129",
+            21: "20260205", 22: "20260212", 23: "20260219", 24: "20260226", 25: "20260305",
+            26: "20260312", 27: "20260319", 28: "20260402", 29: "20260409", 30: "20260416",
+            31: "20260423", 32: "20260430", 33: "20260507", 34: "20260515"
+        };
+
+        function initMatchweekSelect() {
+            const select = document.getElementById("matchweek-select");
+            select.innerHTML = "";
+            
+            for (let i = 1; i <= 34; i++) {
+                const opt = document.createElement("option");
+                opt.value = i;
+                opt.textContent = `${i}. Spieltag`;
+                if (i === currentMatchweek) opt.selected = true;
+                select.appendChild(opt);
+            }
+        }
+
         function formatTeamName(name) {
             if (!name) return 'Unbekannt';
             if (name.trim().toLowerCase() === 'schott') {
@@ -181,7 +199,6 @@
             return name;
         }
 
-        // Historie / Fun Facts
         const historyFacts = [
             "Borussia Mönchengladbach wurde am 1. August 1900 gegründet.",
             "In den 1970er Jahren prägte die legendäre 'Fohlenelf' den deutschen Fußball.",
@@ -213,26 +230,22 @@
             });
         }
 
-        function onTimeframeChange() {
-            const mode = document.getElementById("timeframe-select").value;
-            const dateWrapper = document.getElementById("single-date-wrapper");
-
-            if (mode === 'single') {
-                dateWrapper.classList.remove("hidden");
-                dateWrapper.classList.add("flex");
-                if (!document.getElementById("single-date-input").value) {
-                    document.getElementById("single-date-input").value = new Date().toISOString().split('T')[0];
-                }
-            } else {
-                dateWrapper.classList.add("hidden");
-                dateWrapper.classList.remove("flex");
-            }
-            loadBorussiaGames();
+        function loadSelectedMatchweek() {
+            const select = document.getElementById("matchweek-select");
+            currentMatchweek = parseInt(select.value);
+            loadBorussiaGames(currentMatchweek);
         }
 
         async function refreshAllData() {
-            loadBorussiaGames();
+            loadSelectedMatchweek();
             await loadStandings();
+        }
+
+        function parseEspnDate(dateStr) {
+            const y = parseInt(dateStr.substring(0, 4));
+            const m = parseInt(dateStr.substring(4, 6)) - 1;
+            const d = parseInt(dateStr.substring(6, 8));
+            return new Date(y, m, d);
         }
 
         function formatDateKey(dateObj) {
@@ -242,33 +255,18 @@
             return `${y}${m}${d}`;
         }
 
-        async function loadBorussiaGames() {
+        async function loadBorussiaGames(weekNum) {
             const container = document.getElementById("games-container");
-            container.innerHTML = `<div class="text-center py-12 text-slate-400 animate-pulse">⌛ Lade Borussia Pflichtspiele von ESPN...</div>`;
+            container.innerHTML = `<div class="text-center py-12 text-slate-400 animate-pulse">⌛ Lade ${weekNum}. Spieltag von ESPN...</div>`;
 
-            const mode = document.getElementById("timeframe-select").value;
-            let datesToFetch = [];
-            let baseDate = new Date();
+            const startBaseStr = MATCHWEEK_START_DATES[weekNum] || "20261002";
+            const startDateObj = parseEspnDate(startBaseStr);
 
-            if (mode === 'next7') {
-                for (let i = 0; i < 7; i++) {
-                    let d = new Date(baseDate);
-                    d.setDate(baseDate.getDate() + i);
-                    datesToFetch.push(formatDateKey(d));
-                }
-            } else if (mode === 'prev7') {
-                for (let i = 6; i >= 0; i--) {
-                    let d = new Date(baseDate);
-                    d.setDate(baseDate.getDate() - i);
-                    datesToFetch.push(formatDateKey(d));
-                }
-            } else if (mode === 'single') {
-                const val = document.getElementById("single-date-input").value;
-                if (val) {
-                    datesToFetch.push(val.replace(/-/g, ''));
-                } else {
-                    datesToFetch.push(formatDateKey(baseDate));
-                }
+            const datesToFetch = [];
+            for (let i = 0; i < 4; i++) {
+                let d = new Date(startDateObj);
+                d.setDate(startDateObj.getDate() + i);
+                datesToFetch.push(formatDateKey(d));
             }
 
             try {
@@ -302,8 +300,7 @@
                 gladbachEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
 
                 checkLiveState();
-                renderBorussiaGames();
-                
+                renderBorussiaGames(weekNum);
                 updateWidgetsComprehensive();
             } catch (error) {
                 console.error("Fehler beim Abrufen der Spieldaten:", error);
@@ -311,7 +308,6 @@
             }
         }
 
-        // Umfassender Scan für Widgets mit korrigierten Namen
         async function updateWidgetsComprehensive() {
             try {
                 let dates = [];
@@ -324,7 +320,6 @@
 
                 const endpoints = ['ger.1', 'ger.dfb_pokal'];
                 const promises = [];
-                dates.datesToFetch = [];
                 dates.forEach(dateStr => {
                     endpoints.forEach(league => {
                         promises.push(
@@ -351,7 +346,6 @@
                 const allEvents = Object.values(map);
                 allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-                // 1. Nächstes Pflichtspiel & Countdown
                 const upcoming = allEvents.find(e => new Date(e.date) > new Date() && !e.status?.type?.completed);
                 if (upcoming) {
                     nextGameDate = new Date(upcoming.date);
@@ -365,7 +359,6 @@
                     document.getElementById("countdown-timer").innerText = "--d --h --m --s";
                 }
 
-                // 2. Letztes beendetes Pflichtspiel
                 const finished = allEvents.filter(e => e.status?.type?.completed === true && new Date(e.date) <= new Date());
                 if (finished.length > 0) {
                     const lastGame = finished[finished.length - 1];
@@ -433,12 +426,12 @@
             }
         }
 
-        function renderBorussiaGames() {
+        function renderBorussiaGames(weekNum) {
             const container = document.getElementById("games-container");
             container.innerHTML = "";
 
             if (gladbachEvents.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-slate-500">Für diesen Zeitraum sind keine Pflichtspiele von Borussia Mönchengladbach hinterlegt.</div>`;
+                container.innerHTML = `<div class="text-center py-8 text-slate-500">Für den ${weekNum}. Spieltag sind keine Pflichtspiele von Borussia Mönchengladbach hinterlegt.</div>`;
                 return;
             }
 
@@ -590,7 +583,8 @@
         }
 
         document.addEventListener("DOMContentLoaded", () => {
-            loadBorussiaGames();
+            initMatchweekSelect();
+            loadSelectedMatchweek();
             loadStandings();
         });
     </script>
