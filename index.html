@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💚 Borussia Mönchengladbach - Live Dashboard</title>
+    <!-- Borussia Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>fohlen</text></svg>">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0b120e; color: #f1f5f9; }
+        .custom-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #132219; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #22422e; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #32623d; }
+        @keyframes pulse-green {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .live-dot { animation: pulse-green 1.5s infinite; }
+    </style>
+</head>
+<body class="p-4 md:p-8 font-sans min-h-screen">
+
+    <div class="max-w-[95rem] mx-auto space-y-6">
+        
+        <!-- HEADER KACHEL -->
+        <div class="bg-[#132219]/85 p-5 md:p-6 rounded-2xl border border-[#22422e] shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 backdrop-blur-sm">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 bg-[#0b120e] border-2 border-emerald-500/60 rounded-2xl flex items-center justify-center p-2 shadow-xl">
+                    <img id="team-logo-header" src="https://a.espncdn.com/i/teamlogos/soccer/500/268.png" alt="Gladbach Logo" class="w-full h-full object-contain filter drop-shadow">
+                </div>
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-black text-emerald-400 tracking-wide flex items-center gap-2 drop-shadow-md">
+                        💚 BORUSSIA MÖNCHENGLADBACH
+                    </h1>
+                    <p class="text-slate-400 text-sm font-medium mt-0.5">Bundesliga & DFB-Pokal • Die Fohlenelf Edition</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+                <div id="live-indicator" class="hidden items-center gap-2 bg-emerald-950 border border-emerald-700 text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 live-dot"></span>
+                    BORUSSIA SPIEL LIVE (Auto-Update 15s)
+                </div>
+                
+                <!-- Zeitraum / Modus Auswahl -->
+                <div class="flex items-center gap-2 bg-[#0b120e] border border-[#22422e] px-3 py-1.5 rounded-lg shadow-inner">
+                    <span class="text-xs text-slate-300 font-semibold">📅 Zeitraum:</span>
+                    <select id="timeframe-select" onchange="onTimeframeChange()" class="bg-transparent text-emerald-400 font-bold text-sm focus:outline-none cursor-pointer">
+                        <option value="next7" selected>📅 Nächste 7 Tage</option>
+                        <option value="prev7">⏮️ Vergangene 7 Tage</option>
+                        <option value="single">📆 Einzelnes Datum...</option>
+                    </select>
+                </div>
+
+                <!-- Dynamisches Datumsfeld -->
+                <div id="single-date-wrapper" class="hidden items-center gap-2 bg-[#0b120e] border border-[#22422e] px-3 py-1 rounded-lg shadow-inner">
+                    <input type="date" id="single-date-input" onchange="loadBorussiaGames()" class="bg-transparent text-emerald-400 font-bold text-sm focus:outline-none cursor-pointer">
+                </div>
+
+                <button onclick="refreshAllData()" class="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-lg shadow-lg transition flex items-center gap-2 border border-emerald-400/30">
+                    🔄 Aktualisieren
+                </button>
+            </div>
+        </div>
+
+        <!-- FEATURE LEISTE: COUNTDOWN, LETZTES PFLICHTSPIEL & HISTORIE -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Nächstes Spiel Countdown -->
+            <div class="bg-[#132219]/85 p-4 rounded-2xl border border-[#22422e] shadow-xl flex items-center justify-between backdrop-blur-sm">
+                <div class="space-y-1">
+                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">⏳ Nächstes Spiel</span>
+                    <div id="next-game-title" class="text-sm font-semibold text-white">Suche...</div>
+                </div>
+                <div id="countdown-timer" class="text-right font-mono text-emerald-300 font-black text-sm bg-[#0b120e] px-3 py-2 rounded-xl border border-[#22422e]">
+                    --d --h --m --s
+                </div>
+            </div>
+
+            <!-- Letztes Pflichtspiel Kachel -->
+            <div class="bg-[#132219]/85 p-4 rounded-2xl border border-[#22422e] shadow-xl flex items-center justify-between backdrop-blur-sm">
+                <div class="space-y-1">
+                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">🏁 Letztes Pflichtspiel</span>
+                    <div id="last-game-title" class="text-sm font-semibold text-white">Lade letztes Spiel...</div>
+                </div>
+                <div id="last-game-score" class="text-right font-mono text-emerald-300 font-black text-sm bg-[#0b120e] px-3 py-2 rounded-xl border border-[#22422e]">
+                    - : -
+                </div>
+            </div>
+
+            <!-- Fohlenelf Historie / Fun Fact -->
+            <div class="bg-[#132219]/85 p-4 rounded-2xl border border-[#22422e] shadow-xl flex items-center justify-between backdrop-blur-sm">
+                <div class="space-y-1 w-full">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">📜 Fohlen-Historie</span>
+                        <button onclick="nextHistoryFact()" class="text-[10px] text-slate-400 hover:text-emerald-400 underline">Nächster Fakt</button>
+                    </div>
+                    <div id="history-fact" class="text-xs text-slate-300 italic truncate">Lade Fakten...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEPARATE BANNER-FOTO KACHEL -->
+        <div class="bg-[#132219]/60 p-3 rounded-2xl border border-[#22422e] shadow-2xl backdrop-blur-sm overflow-hidden">
+            <div class="w-full h-48 md:h-64 rounded-xl overflow-hidden bg-[#0b120e] flex items-center justify-center border border-[#22422e]/80 shadow-inner relative group">
+                <img src="https://lhusylpjnujlqomougmg.supabase.co/storage/v1/object/public/vereinslogos/gladbach%20(1).png" alt="Borussia Mönchengladbach Banner" class="w-full h-full object-contain object-center transform group-hover:scale-105 transition duration-500">
+                <div class="absolute bottom-3 left-3 bg-[#0b120e]/90 border border-emerald-500/40 text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-bold backdrop-blur-md shadow-lg">
+                    Borussia-Park • Die Fohlenelf 💚
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB NAVIGATION -->
+        <div class="flex border-b border-[#22422e] space-x-2">
+            <button id="tab-btn-games" onclick="switchTab('games')" class="px-5 py-2.5 font-bold text-sm rounded-t-xl bg-[#132219] text-emerald-400 border-t-2 border-emerald-500 transition shadow-lg">
+                ⚽ Borussia Spielplan
+            </button>
+            <button id="tab-btn-standings" onclick="switchTab('standings')" class="px-5 py-2.5 font-bold text-sm rounded-t-xl bg-[#132219]/50 text-slate-400 hover:text-white transition">
+                📊 Bundesliga Tabelle (Highlight Borussia)
+            </button>
+        </div>
+
+        <!-- TAB 1: SPIELE & LIVE SCORES -->
+        <div id="tab-content-games" class="space-y-6">
+            <div id="games-container" class="space-y-8">
+                <div class="text-center py-12 text-slate-400 animate-pulse">
+                    ⌛ Lade Borussia Pflichtspiele von ESPN...
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: TABELLE -->
+        <div id="tab-content-standings" class="hidden space-y-8">
+            <div class="bg-[#132219]/60 p-6 rounded-2xl border border-[#22422e] shadow-xl space-y-4 backdrop-blur-sm">
+                <div class="flex justify-between items-center border-b border-[#22422e] pb-3">
+                    <h2 class="text-xl font-bold text-emerald-400 flex items-center gap-2">🏆 Bundesliga Tabelle 2026/27</h2>
+                </div>
+
+                <div class="overflow-x-auto custom-scroll">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead class="bg-[#0b120e] text-slate-400 uppercase text-xs">
+                            <tr>
+                                <th class="px-3 py-3 min-w-[40px]">#</th>
+                                <th class="px-4 py-3 min-w-[200px]">Club</th>
+                                <th class="px-3 py-3 text-center">Sp</th>
+                                <th class="px-3 py-3 text-center">S</th>
+                                <th class="px-3 py-3 text-center">U</th>
+                                <th class="px-3 py-3 text-center">N</th>
+                                <th class="px-3 py-3 text-center">Tore</th>
+                                <th class="px-3 py-3 text-center">Diff</th>
+                                <th class="px-4 py-3 text-center font-bold text-emerald-400">Pkt</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" class="divide-y divide-[#22422e]/40">
+                            <tr><td colspan="9" class="px-4 py-6 text-center text-slate-500">Lade Tabelle...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JAVASCRIPT LOGIK -->
+    <script>
+        const GLADBACH_TEAM_ID = "268";
+        let gladbachEvents = [];
+        let autoRefreshTimer = null;
+        let countdownInterval = null;
+        let nextGameDate = null;
+
+        // Hilfsfunktion: Korrigiert unvollständige API-Namen automatisch
+        function formatTeamName(name) {
+            if (!name) return 'Unbekannt';
+            if (name.trim().toLowerCase() === 'schott') {
+                return 'TSV Schott Mainz';
+            }
+            return name;
+        }
+
+        // Historie / Fun Facts
+        const historyFacts = [
+            "Borussia Mönchengladbach wurde am 1. August 1900 gegründet.",
+            "In den 1970er Jahren prägte die legendäre 'Fohlenelf' den deutschen Fußball.",
+            "Der Borussia-Park bietet Platz für über 54.000 Zuschauer.",
+            "Borussia wurde fünfmal Deutscher Meister und viermal DFB-Pokalsieger.",
+            "Die Vereinsfarben sind Schwarz, Weiß und Grün."
+        ];
+        let currentFactIdx = 0;
+
+        function nextHistoryFact() {
+            currentFactIdx = (currentFactIdx + 1) % historyFacts.length;
+            document.getElementById("history-fact").innerText = historyFacts[currentFactIdx];
+        }
+
+        document.getElementById("history-fact").innerText = historyFacts[0];
+
+        function switchTab(tabName) {
+            const tabs = ['games', 'standings'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                const content = document.getElementById(`tab-content-${t}`);
+                if (t === tabName) {
+                    btn.className = "px-5 py-2.5 font-bold text-sm rounded-t-xl bg-[#132219] text-emerald-400 border-t-2 border-emerald-500 transition shadow-lg";
+                    content.classList.remove("hidden");
+                } else {
+                    btn.className = "px-5 py-2.5 font-bold text-sm rounded-t-xl bg-[#132219]/50 text-slate-400 hover:text-white transition";
+                    content.classList.add("hidden");
+                }
+            });
+        }
+
+        function onTimeframeChange() {
+            const mode = document.getElementById("timeframe-select").value;
+            const dateWrapper = document.getElementById("single-date-wrapper");
+
+            if (mode === 'single') {
+                dateWrapper.classList.remove("hidden");
+                dateWrapper.classList.add("flex");
+                if (!document.getElementById("single-date-input").value) {
+                    document.getElementById("single-date-input").value = new Date().toISOString().split('T')[0];
+                }
+            } else {
+                dateWrapper.classList.add("hidden");
+                dateWrapper.classList.remove("flex");
+            }
+            loadBorussiaGames();
+        }
+
+        async function refreshAllData() {
+            loadBorussiaGames();
+            await loadStandings();
+        }
+
+        function formatDateKey(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}${m}${d}`;
+        }
+
+        async function loadBorussiaGames() {
+            const container = document.getElementById("games-container");
+            container.innerHTML = `<div class="text-center py-12 text-slate-400 animate-pulse">⌛ Lade Borussia Pflichtspiele von ESPN...</div>`;
+
+            const mode = document.getElementById("timeframe-select").value;
+            let datesToFetch = [];
+            let baseDate = new Date();
+
+            if (mode === 'next7') {
+                for (let i = 0; i < 7; i++) {
+                    let d = new Date(baseDate);
+                    d.setDate(baseDate.getDate() + i);
+                    datesToFetch.push(formatDateKey(d));
+                }
+            } else if (mode === 'prev7') {
+                for (let i = 6; i >= 0; i--) {
+                    let d = new Date(baseDate);
+                    d.setDate(baseDate.getDate() - i);
+                    datesToFetch.push(formatDateKey(d));
+                }
+            } else if (mode === 'single') {
+                const val = document.getElementById("single-date-input").value;
+                if (val) {
+                    datesToFetch.push(val.replace(/-/g, ''));
+                } else {
+                    datesToFetch.push(formatDateKey(baseDate));
+                }
+            }
+
+            try {
+                const endpoints = ['ger.1', 'ger.dfb_pokal'];
+                const promises = [];
+                
+                datesToFetch.forEach(dateStr => {
+                    endpoints.forEach(league => {
+                        promises.push(
+                            fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/scoreboard?dates=${dateStr}`)
+                                .then(res => res.json())
+                                .then(data => data.events || [])
+                                .catch(() => [])
+                        );
+                    });
+                });
+
+                const results = await Promise.all(promises);
+                const eventMap = {};
+                results.flat().forEach(e => {
+                    if (e && e.id) {
+                        const comps = e.competitions?.[0]?.competitors || [];
+                        const isGladbach = comps.some(c => c.team?.id === GLADBACH_TEAM_ID);
+                        if (isGladbach) {
+                            eventMap[e.id] = e;
+                        }
+                    }
+                });
+
+                gladbachEvents = Object.values(eventMap);
+                gladbachEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                checkLiveState();
+                renderBorussiaGames();
+                
+                updateWidgetsComprehensive();
+            } catch (error) {
+                console.error("Fehler beim Abrufen der Spieldaten:", error);
+                container.innerHTML = '<div class="text-center py-8 text-rose-400">⚠️ Fehler beim Laden der Spieldaten von ESPN.</div>';
+            }
+        }
+
+        // Umfassender Scan für Widgets mit korrigierten Namen
+        async function updateWidgetsComprehensive() {
+            try {
+                let dates = [];
+                let now = new Date();
+                for (let i = -60; i <= 60; i += 7) {
+                    let d = new Date();
+                    d.setDate(now.getDate() + i);
+                    dates.push(formatDateKey(d));
+                }
+
+                const endpoints = ['ger.1', 'ger.dfb_pokal'];
+                const promises = [];
+                dates.datesToFetch = [];
+                dates.forEach(dateStr => {
+                    endpoints.forEach(league => {
+                        promises.push(
+                            fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/scoreboard?dates=${dateStr}`)
+                                .then(res => res.json())
+                                .then(data => data.events || [])
+                                .catch(() => [])
+                        );
+                    });
+                });
+
+                const results = await Promise.all(promises);
+                const map = {};
+                results.flat().forEach(e => {
+                    if (e && e.id) {
+                        const comps = e.competitions?.[0]?.competitors || [];
+                        if (comps.some(c => c.team?.id === GLADBACH_TEAM_ID)) {
+                            map[e.id] = e;
+                        }
+                    }
+                });
+
+                gladbachEvents.forEach(e => map[e.id] = e);
+                const allEvents = Object.values(map);
+                allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                // 1. Nächstes Pflichtspiel & Countdown
+                const upcoming = allEvents.find(e => new Date(e.date) > new Date() && !e.status?.type?.completed);
+                if (upcoming) {
+                    nextGameDate = new Date(upcoming.date);
+                    const comp = upcoming.competitions?.[0];
+                    const home = formatTeamName(comp?.competitors?.find(c => c.homeAway === "home")?.team?.displayName || comp?.competitors?.find(c => c.homeAway === "home")?.team?.name);
+                    const away = formatTeamName(comp?.competitors?.find(c => c.homeAway === "away")?.team?.displayName || comp?.competitors?.find(c => c.homeAway === "away")?.team?.name);
+                    document.getElementById("next-game-title").innerText = `${home} vs ${away}`;
+                    startCountdown();
+                } else {
+                    document.getElementById("next-game-title").innerText = "Kein Spiel in Sicht";
+                    document.getElementById("countdown-timer").innerText = "--d --h --m --s";
+                }
+
+                // 2. Letztes beendetes Pflichtspiel
+                const finished = allEvents.filter(e => e.status?.type?.completed === true && new Date(e.date) <= new Date());
+                if (finished.length > 0) {
+                    const lastGame = finished[finished.length - 1];
+                    const comp = lastGame.competitions?.[0];
+                    const home = comp?.competitors?.find(c => c.homeAway === "home");
+                    const away = comp?.competitors?.find(c => c.homeAway === "away");
+                    
+                    const homeName = formatTeamName(home?.team?.displayName || home?.team?.name);
+                    const awayName = formatTeamName(away?.team?.displayName || away?.team?.name);
+                    const homeScore = home?.score?.displayValue ?? home?.score ?? '0';
+                    const awayScore = away?.score?.displayValue ?? away?.score ?? '0';
+
+                    document.getElementById("last-game-title").innerText = `${homeName} - ${awayName}`;
+                    document.getElementById("last-game-score").innerText = `${homeScore} : ${awayScore}`;
+                } else {
+                    document.getElementById("last-game-title").innerText = "Kein Spiel gefunden";
+                    document.getElementById("last-game-score").innerText = "- : -";
+                }
+
+            } catch (err) {
+                console.error("Widget Fehler:", err);
+            }
+        }
+
+        function startCountdown() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            countdownInterval = setInterval(() => {
+                if (!nextGameDate) return;
+                const now = new Date();
+                const diff = nextGameDate - now;
+
+                if (diff <= 0) {
+                    document.getElementById("countdown-timer").innerText = "ANSPIFF!";
+                    clearInterval(countdownInterval);
+                    return;
+                }
+
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                document.getElementById("countdown-timer").innerText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            }, 1000);
+        }
+
+        function checkLiveState() {
+            const isLive = gladbachEvents.some(e => e.status?.type?.state === "in");
+            const liveIndicator = document.getElementById("live-indicator");
+
+            if (isLive) {
+                liveIndicator.classList.remove("hidden");
+                liveIndicator.classList.add("flex");
+                if (!autoRefreshTimer) {
+                    autoRefreshTimer = setInterval(refreshAllData, 15000);
+                }
+            } else {
+                liveIndicator.classList.add("hidden");
+                liveIndicator.classList.remove("flex");
+                if (autoRefreshTimer) {
+                    clearInterval(autoRefreshTimer);
+                    autoRefreshTimer = null;
+                }
+            }
+        }
+
+        function renderBorussiaGames() {
+            const container = document.getElementById("games-container");
+            container.innerHTML = "";
+
+            if (gladbachEvents.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-slate-500">Für diesen Zeitraum sind keine Pflichtspiele von Borussia Mönchengladbach hinterlegt.</div>`;
+                return;
+            }
+
+            const grid = document.createElement("div");
+            grid.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+            container.appendChild(grid);
+
+            gladbachEvents.forEach(event => {
+                const competition = event.competitions?.[0];
+                const home = competition?.competitors?.find(c => c.homeAway === "home");
+                const away = competition?.competitors?.find(c => c.homeAway === "away");
+
+                const status = event.status?.type;
+                const isLive = status?.state === "in";
+                const isCompleted = status?.completed;
+
+                const gameDate = new Date(event.date);
+                const dateStr = gameDate.toLocaleDateString("de-DE", { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+                const timeStr = gameDate.toLocaleTimeString("de-DE", { hour: '2-digit', minute: '2-digit' }) + " Uhr";
+
+                let statusBadgeClass = "bg-[#0b120e] text-slate-300 border border-[#22422e]";
+                let statusText = `${dateStr} • ${timeStr}`;
+
+                if (isLive) {
+                    statusBadgeClass = "bg-emerald-950 text-emerald-300 border border-emerald-600 live-dot font-bold";
+                    statusText = `🔴 LIVE - ${status?.detail || 'In Progress'}`;
+                } else if (isCompleted) {
+                    statusBadgeClass = "bg-emerald-950/80 text-emerald-300 border border-emerald-700 font-bold";
+                    statusText = `${dateStr} • ENDE`;
+                }
+
+                const homeScore = (home?.score !== undefined && home?.score !== null) ? (typeof home.score === 'object' ? home.score.displayValue : home.score) : '-';
+                const awayScore = (away?.score !== undefined && away?.score !== null) ? (typeof away.score === 'object' ? away.score.displayValue : away.score) : '-';
+
+                const homeName = formatTeamName(home?.team?.displayName || home?.team?.name);
+                const awayName = formatTeamName(away?.team?.displayName || away?.team?.name);
+
+                const homeId = home?.team?.id || '';
+                const awayId = away?.team?.id || '';
+                const homeLogo = home?.team?.logo || (homeId ? `https://a.espncdn.com/i/teamlogos/soccer/500/${homeId}.png` : '');
+                const awayLogo = away?.team?.logo || (awayId ? `https://a.espncdn.com/i/teamlogos/soccer/500/${awayId}.png` : '');
+
+                let tournamentName = competition?.type?.text || 'Bundesliga';
+                if (event.uid && event.uid.includes('dfb_pokal')) {
+                    tournamentName = "DFB-Pokal";
+                }
+
+                const card = document.createElement("div");
+                card.className = "bg-[#132219]/60 p-5 rounded-xl border border-[#22422e] shadow-lg space-y-4 hover:border-emerald-500/50 transition backdrop-blur-sm";
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-[#22422e] pb-2">
+                        <span class="text-emerald-400 text-xs font-bold uppercase tracking-wider">${tournamentName}</span>
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] ${statusBadgeClass}">${statusText}</span>
+                    </div>
+
+                    <div class="space-y-3">
+                        <!-- HEIMTEAM -->
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <img src="${homeLogo}" class="w-8 h-8 object-contain filter drop-shadow" alt="Logo">
+                                <span class="font-bold text-white text-base ${home?.team?.id === GLADBACH_TEAM_ID ? 'text-emerald-400 underline decoration-emerald-500' : ''}">${homeName}</span>
+                            </div>
+                            <span class="text-2xl font-black ${home?.winner ? 'text-emerald-400' : 'text-slate-200'}">
+                                ${homeScore}
+                            </span>
+                        </div>
+
+                        <!-- AUSWÄRTSTEAM -->
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <img src="${awayLogo}" class="w-8 h-8 object-contain filter drop-shadow" alt="Logo">
+                                <span class="font-bold text-white text-base ${away?.team?.id === GLADBACH_TEAM_ID ? 'text-emerald-400 underline decoration-emerald-500' : ''}">${awayName}</span>
+                            </div>
+                            <span class="text-2xl font-black ${away?.winner ? 'text-emerald-400' : 'text-slate-200'}">
+                                ${awayScore}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function loadStandings() {
+            const url = "https://site.api.espn.com/apis/v2/sports/soccer/ger.1/standings";
+            const tbody = document.getElementById("table-body");
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                const entries = data.children?.[0]?.standings?.entries || data.standings?.entries || [];
+                tbody.innerHTML = "";
+
+                if (!entries || entries.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-slate-500">Keine Tabellendaten gefunden.</td></tr>';
+                    return;
+                }
+
+                entries.forEach((entry, idx) => {
+                    const team = entry.team;
+                    const stats = entry.stats || [];
+                    const getStat = (name) => stats.find(s => s.name === name)?.displayValue || "0";
+
+                    const rank = idx + 1;
+                    const isGladbach = team?.id === GLADBACH_TEAM_ID;
+                    const games = getStat("gamesPlayed");
+                    const wins = getStat("wins");
+                    const draws = getStat("ties");
+                    const losses = getStat("losses");
+                    const points = getStat("points");
+                    const diff = getStat("pointDifferential");
+                    const goalsFor = getStat("pointsFor");
+                    const goalsAgainst = getStat("pointsAgainst");
+
+                    let rowClass = idx % 2 === 0 ? "bg-[#132219]/30 hover:bg-[#132219]/70 transition" : "bg-[#132219]/10 hover:bg-[#132219]/70 transition";
+                    if (isGladbach) {
+                        rowClass = "bg-emerald-600/20 border-l-4 border-emerald-400 hover:bg-emerald-600/30 transition font-bold";
+                    }
+
+                    const teamId = team?.id || '';
+                    const teamLogo = team?.logos?.[0]?.href || (teamId ? `https://a.espncdn.com/i/teamlogos/soccer/500/${teamId}.png` : '');
+
+                    const row = document.createElement("tr");
+                    row.className = rowClass;
+
+                    row.innerHTML = `
+                        <td class="px-3 py-3 ${isGladbach ? 'text-emerald-400 font-black' : 'text-slate-400'}">${rank}</td>
+                        <td class="px-4 py-3 font-semibold text-white flex items-center gap-3">
+                            <img src="${teamLogo}" class="w-6 h-6 object-contain" alt="Logo">
+                            <span class="${isGladbach ? 'text-emerald-400 text-base' : ''}">${formatTeamName(team?.displayName)}</span>
+                        </td>
+                        <td class="px-3 py-3 text-center text-slate-300">${games}</td>
+                        <td class="px-3 py-3 text-center text-slate-300">${wins}</td>
+                        <td class="px-3 py-3 text-center text-slate-300">${draws}</td>
+                        <td class="px-3 py-3 text-center text-slate-300">${losses}</td>
+                        <td class="px-3 py-3 text-center text-slate-400">${goalsFor}:${goalsAgainst}</td>
+                        <td class="px-3 py-3 text-center font-medium ${parseInt(diff) > 0 ? 'text-emerald-400' : (parseInt(diff) < 0 ? 'text-rose-400' : 'text-slate-400')}">${diff}</td>
+                        <td class="px-4 py-3 text-center font-black text-emerald-400 text-base">${points}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+            } catch (error) {
+                console.error("Fehler beim Abrufen der Tabelle:", error);
+                tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-rose-400">Fehler beim Laden der Tabelle.</td></tr>';
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadBorussiaGames();
+            loadStandings();
+        });
+    </script>
+</body>
+</html>
