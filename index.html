@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🟢 Gladbach</title>
+    <title>🟢 Gladbach — Bundesliga Spielplan, Tabelle 2026/27</title>
     
-    <!-- Perfektes Emoji-App-Icon für iPhone & Android -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230b120e%22/><text x=%2250%22 y=%2270%22 font-size=%2260%22 text-anchor=%22middle%22>🟢</text></svg>">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230b120e%22/><text x=%2250%22 y=%2270%22 font-size=%2260%22 text-anchor=%22middle%22>🟢</text></svg>">
+    <!-- Perfektes Emoji-App-Icon für iPhone & Android (Grün mit "OLDB") -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%232ea043%22/><text x=%2250%22 y=%2263%22 font-size=%2230%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22 font-family=%22sans-serif%22>OLDB</text></svg>">
+    <link rel="apple-touch-icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%232ea043%22/><text x=%2250%22 y=%2263%22 font-size=%2230%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22 font-family=%22sans-serif%22>OLDB</text></svg>">
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase Client Bibliothek laden -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background-color: #0b120e; color: #f1f5f9; }
+        body { background-color: #0b120e; color: #f1f5f9; display: flex; justify-content: center; }
         .custom-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
         .custom-scroll::-webkit-scrollbar-track { background: #132219; border-radius: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #22422e; border-radius: 4px; }
@@ -24,71 +26,49 @@
         .live-dot { animation: pulse-green 1.5s infinite; }
     </style>
 </head>
-<body class="p-4 md:p-8 font-sans min-h-screen">
+<body class="p-3 md:p-6 font-sans min-h-screen w-full">
 
-    <div class="max-w-[95rem] mx-auto space-y-6">
+    <div class="w-full max-w-4xl space-y-5">
         
         <!-- HEADER KACHEL -->
-        <div class="bg-[#132219]/85 p-5 md:p-6 rounded-2xl border border-[#22422e] shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 backdrop-blur-sm">
+        <div class="bg-[#132219]/85 p-4 md:p-6 rounded-2xl border border-[#22422e] shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 backdrop-blur-sm">
             <div class="flex items-center gap-4">
-                <div class="w-16 h-16 bg-[#0b120e] border-2 border-emerald-500/60 rounded-2xl flex items-center justify-center p-2 shadow-xl">
-                    <img id="team-logo-header" src="https://a.espncdn.com/i/teamlogos/soccer/500/268.png" alt="Gladbach Logo" class="w-full h-full object-contain filter drop-shadow">
+                <div class="w-14 h-14 bg-[#0b120e] border-2 border-emerald-500/60 rounded-2xl flex items-center justify-center p-2 shadow-xl shrink-0">
+                    <img id="team-logo-header" src="https://a.espncdn.com/i/teamlogos/soccer/500/268.png" alt="Gladbach Logo" class="w-full h-full object-contain filter drop-shadow" onerror="this.src='https://ssl.gstatic.com/onebox/media/sports/logos/optimized/HFg_gp-vbuL7z1Othoa0ZA_500x500.png'">
                 </div>
                 <div>
-                    <h1 class="text-3xl md:text-4xl font-black text-emerald-400 tracking-wide flex items-center gap-2 drop-shadow-md">
+                    <h1 class="text-2xl md:text-3xl font-black text-emerald-400 tracking-wide flex items-center gap-2 drop-shadow-md">
                         💚 BORUSSIA MÖNCHENGLADBACH
                     </h1>
-                    <p class="text-slate-400 text-sm font-medium mt-0.5">Bundesliga & DFB-Pokal • Die Fohlenelf Edition</p>
+                    <p class="text-slate-400 text-xs md:text-sm font-medium mt-0.5">OpenLigaDB Edition • Die Fohlenelf</p>
                 </div>
             </div>
             
-            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+            <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end">
                 <div id="live-indicator" class="hidden items-center gap-2 bg-emerald-950 border border-emerald-700 text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 live-dot"></span>
-                    BORUSSIA SPIEL LIVE (Auto-Update 15s)
+                    LIVE-SYNC AKTIV
                 </div>
+
+                <button onclick="openLeagueScorersModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs shadow-lg transition flex items-center gap-1.5">
+                    ⚽ Torschützen
+                </button>
                 
-                <!-- Zeitraum / Modus Auswahl -->
-                <div class="flex items-center gap-2 bg-[#0b120e] border border-[#22422e] px-3 py-1.5 rounded-lg shadow-inner">
-                    <span class="text-xs text-slate-300 font-semibold">📅 Zeitraum:</span>
-                    <select id="timeframe-select" onchange="onTimeframeChange()" class="bg-transparent text-emerald-400 font-bold text-sm focus:outline-none cursor-pointer">
-                        <option value="next7" selected>📅 Nächste 7 Tage</option>
-                        <option value="prev7">⏮️ Vergangene 7 Tage</option>
-                        <option value="single">📆 Einzelnes Datum...</option>
-                    </select>
-                </div>
-
-                <!-- Dynamisches Datumsfeld -->
-                <div id="single-date-wrapper" class="hidden items-center gap-2 bg-[#0b120e] border border-[#22422e] px-3 py-1 rounded-lg shadow-inner">
-                    <input type="date" id="single-date-input" onchange="loadBorussiaGames()" class="bg-transparent text-emerald-400 font-bold text-sm focus:outline-none cursor-pointer">
-                </div>
-
-                <button onclick="refreshAllData()" class="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-lg shadow-lg transition flex items-center gap-2 border border-emerald-400/30">
+                <button onclick="refreshAllData()" class="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs shadow-lg transition flex items-center gap-1.5 border border-emerald-400/30">
                     🔄 Aktualisieren
                 </button>
             </div>
         </div>
 
-        <!-- FEATURE LEISTE: COUNTDOWN, LETZTES PFLICHTSPIEL & HISTORIE -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Nächstes Spiel Countdown -->
-            <div class="bg-[#132219]/85 p-4 rounded-2xl border border-[#22422e] shadow-xl flex items-center justify-between backdrop-blur-sm">
-                <div class="space-y-1">
-                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">⏳ Nächstes Spiel</span>
-                    <div id="next-game-title" class="text-sm font-semibold text-white">Suche...</div>
-                </div>
-                <div id="countdown-timer" class="text-right font-mono text-emerald-300 font-black text-sm bg-[#0b120e] px-3 py-2 rounded-xl border border-[#22422e]">
-                    --d --h --m --s
-                </div>
-            </div>
-
+        <!-- FEATURE LEISTE: LETZTES SPIEL & HISTORIE -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- Letztes Pflichtspiel Kachel -->
             <div class="bg-[#132219]/85 p-4 rounded-2xl border border-[#22422e] shadow-xl flex items-center justify-between backdrop-blur-sm">
                 <div class="space-y-1">
-                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">🏁 Letztes Pflichtspiel</span>
-                    <div id="last-game-title" class="text-sm font-semibold text-white">Lade letztes Spiel...</div>
+                    <span class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">🏁 Letztes Pflichtspiel</span>
+                    <div id="last-game-title" class="text-xs md:text-sm font-semibold text-white">Lade letztes Spiel...</div>
                 </div>
-                <div id="last-game-score" class="text-right font-mono text-emerald-300 font-black text-sm bg-[#0b120e] px-3 py-2 rounded-xl border border-[#22422e]">
+                <div id="last-game-score" class="text-right font-mono text-emerald-300 font-black text-sm bg-[#0b120e] px-3 py-2 rounded-xl border border-[#22422e] shrink-0">
                     - : -
                 </div>
             </div>
@@ -97,90 +77,129 @@
             <div class="bg-[#132219]/85 p-4 rounded-2xl border border-[#22422e] shadow-xl flex items-center justify-between backdrop-blur-sm">
                 <div class="space-y-1 w-full">
                     <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">📜 Fohlen-Historie</span>
-                        <button onclick="nextHistoryFact()" class="text-[10px] text-slate-400 hover:text-emerald-400 underline">Nächster Fakt</button>
+                        <span class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">📜 Fohlen-Historie</span>
+                        <button onclick="nextHistoryFact()" class="text-[10px] text-slate-400 hover:text-emerald-400 underline">Nächster</button>
                     </div>
                     <div id="history-fact" class="text-xs text-slate-300 italic truncate">Lade Fakten...</div>
                 </div>
             </div>
         </div>
 
-        <!-- SEPARATE BANNER-FOTO KACHEL -->
-        <div class="bg-[#132219]/60 p-3 rounded-2xl border border-[#22422e] shadow-2xl backdrop-blur-sm overflow-hidden">
-            <div class="w-full h-48 md:h-64 rounded-xl overflow-hidden bg-[#0b120e] flex items-center justify-center border border-[#22422e]/80 shadow-inner relative group">
+        <!-- BANNER-FOTO KACHEL -->
+        <div class="bg-[#132219]/60 p-2.5 rounded-2xl border border-[#22422e] shadow-2xl backdrop-blur-sm overflow-hidden">
+            <div class="w-full h-40 md:h-52 rounded-xl overflow-hidden bg-[#0b120e] flex items-center justify-center border border-[#22422e]/80 shadow-inner relative group">
                 <img src="https://lhusylpjnujlqomougmg.supabase.co/storage/v1/object/public/vereinslogos/gladbach%20(1).png" alt="Borussia Mönchengladbach Banner" class="w-full h-full object-contain object-center transform group-hover:scale-105 transition duration-500">
-                <div class="absolute bottom-3 left-3 bg-[#0b120e]/90 border border-emerald-500/40 text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-bold backdrop-blur-md shadow-lg">
+                <div class="absolute bottom-3 left-3 bg-[#0b120e]/90 border border-emerald-500/40 text-emerald-400 px-3 py-1 rounded-lg text-xs font-bold backdrop-blur-md shadow-lg">
                     Borussia-Park • Die Fohlenelf 💚
                 </div>
             </div>
         </div>
 
-        <!-- TAB NAVIGATION -->
-        <div class="flex border-b border-[#22422e] space-x-2">
-            <button id="tab-btn-games" onclick="switchTab('games')" class="px-5 py-2.5 font-bold text-sm rounded-t-xl bg-[#132219] text-emerald-400 border-t-2 border-emerald-500 transition shadow-lg">
-                ⚽ Borussia Spielplan
-            </button>
-            <button id="tab-btn-standings" onclick="switchTab('standings')" class="px-5 py-2.5 font-bold text-sm rounded-t-xl bg-[#132219]/50 text-slate-400 hover:text-white transition">
-                📊 Bundesliga Tabelle (Highlight Borussia)
-            </button>
-        </div>
-
-        <!-- TAB 1: SPIELE & LIVE SCORES -->
-        <div id="tab-content-games" class="space-y-6">
-            <div id="games-container" class="space-y-8">
-                <div class="text-center py-12 text-slate-400 animate-pulse">
-                    ⌛ Lade Borussia Pflichtspiele von ESPN...
+        <!-- SPIELTAGS-ÜBERBLICK (OpenLigaDB) -->
+        <div class="bg-[#132219]/60 p-5 rounded-2xl border border-[#22422e] shadow-xl space-y-4 backdrop-blur-sm">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3 border-b border-[#22422e] pb-3">
+                <h2 id="matchdayTableHeader" class="text-lg font-bold text-emerald-400">Spieltag 1 — Spiele & Ergebnisse</h2>
+                <div class="flex items-center gap-2">
+                    <button onclick="changeMatchday(-1)" class="bg-[#0b120e] hover:bg-[#1a3324] border border-[#22422e] text-emerald-400 font-bold px-2.5 py-1 rounded-lg text-xs transition">◀ Vorheriger</button>
+                    <strong id="matchdayDisplay" class="text-emerald-400 text-sm">Spieltag 1</strong>
+                    <button onclick="changeMatchday(1)" class="bg-[#0b120e] hover:bg-[#1a3324] border border-[#22422e] text-emerald-400 font-bold px-2.5 py-1 rounded-lg text-xs transition">Nächster ▶</button>
                 </div>
+            </div>
+
+            <div class="overflow-x-auto custom-scroll">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="bg-[#0b120e] text-slate-400 uppercase text-[11px]">
+                        <tr>
+                            <th class="px-3 py-2.5 min-w-[110px]">Termin</th>
+                            <th class="px-3 py-2.5 text-right">Heimmannschaft</th>
+                            <th class="px-3 py-2.5 text-center min-w-[150px]">Ergebnis / Status</th>
+                            <th class="px-3 py-2.5">Gastmannschaft</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matchdayTableBody" class="divide-y divide-[#22422e]/40">
+                        <tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">Lade Spielplan von OpenLigaDB...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <!-- TAB 2: TABELLE -->
-        <div id="tab-content-standings" class="hidden space-y-8">
-            <div class="bg-[#132219]/60 p-6 rounded-2xl border border-[#22422e] shadow-xl space-y-4 backdrop-blur-sm">
-                <div class="flex justify-between items-center border-b border-[#22422e] pb-3">
-                    <h2 class="text-xl font-bold text-emerald-400 flex items-center gap-2">🏆 Bundesliga Tabelle 2026/27</h2>
-                </div>
+        <!-- ADMIN BEREICH FÜR GLADBACH-TORSCHÜTZEN -->
+        <div class="bg-[#132219]/85 p-4 rounded-2xl border border-emerald-500/50 shadow-xl space-y-3 backdrop-blur-sm" id="adminCard" style="display: none;">
+            <div class="font-bold text-emerald-400 text-xs uppercase flex justify-between items-center">
+                <span>✏️ Gladbach-Torschützen für <span id="adminMatchdayLabel">Spieltag 1</span> erfassen</span>
+                <span class="text-[10px] text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-700">● Admin Aktiv</span>
+            </div>
+            <div id="matchInputsContainer" class="space-y-2.5"></div>
+            <button onclick="saveAllScorers()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2 rounded-lg transition shadow-lg uppercase text-xs">Gladbach-Torschützen speichern</button>
+        </div>
 
-                <div class="overflow-x-auto custom-scroll">
-                    <table class="w-full text-left text-sm text-slate-300">
-                        <thead class="bg-[#0b120e] text-slate-400 uppercase text-xs">
-                            <tr>
-                                <th class="px-3 py-3 min-w-[40px]">#</th>
-                                <th class="px-4 py-3 min-w-[200px]">Club</th>
-                                <th class="px-3 py-3 text-center">Sp</th>
-                                <th class="px-3 py-3 text-center">S</th>
-                                <th class="px-3 py-3 text-center">U</th>
-                                <th class="px-3 py-3 text-center">N</th>
-                                <th class="px-3 py-3 text-center">Tore</th>
-                                <th class="px-3 py-3 text-center">Diff</th>
-                                <th class="px-4 py-3 text-center font-bold text-emerald-400">Pkt</th>
-                            </tr>
-                        </thead>
-                        <tbody id="table-body" class="divide-y divide-[#22422e]/40">
-                            <tr><td colspan="9" class="px-4 py-6 text-center text-slate-500">Lade Tabelle...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+        <div class="text-right">
+            <button onclick="toggleAdminMode()" class="text-xs text-slate-400 hover:text-emerald-400 border border-dashed border-[#22422e] px-3 py-1.5 rounded-lg transition">⚙️ Admin-Zugang</button>
+        </div>
+
+        <!-- GESAMT-TABELLE (UNTER DEM SPIELTAG) -->
+        <div class="bg-[#132219]/60 p-5 rounded-2xl border border-[#22422e] shadow-xl space-y-4 backdrop-blur-sm">
+            <div class="flex justify-between items-center border-b border-[#22422e] pb-3">
+                <h2 class="text-lg font-bold text-emerald-400 flex items-center gap-2">🏆 Bundesliga Tabelle (Gesamt)</h2>
+            </div>
+
+            <div class="overflow-x-auto custom-scroll">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="bg-[#0b120e] text-slate-400 uppercase text-[11px]">
+                        <tr>
+                            <th class="px-2.5 py-2.5 min-w-[35px]">#</th>
+                            <th class="px-3 py-2.5 min-w-[170px]">Mannschaft</th>
+                            <th class="px-2.5 py-2.5 text-center">Sp</th>
+                            <th class="px-2.5 py-2.5 text-center">S</th>
+                            <th class="px-2.5 py-2.5 text-center">U</th>
+                            <th class="px-2.5 py-2.5 text-center">N</th>
+                            <th class="px-2.5 py-2.5 text-center">Tore</th>
+                            <th class="px-2.5 py-2.5 text-center">Diff</th>
+                            <th class="px-3 py-2.5 text-center font-bold text-emerald-400">Pkt</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-[#22422e]/40">
+                        <tr><td colspan="9" class="px-4 py-6 text-center text-slate-500">Lade Tabelle...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
     </div>
 
+    <!-- POPUP MODAL: TORSCHÜTZENLISTE -->
+    <div id="leagueScorersModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden justify-center items-center z-50 p-4">
+        <div class="bg-[#132219] border border-emerald-500/50 rounded-2xl p-5 w-full max-w-md shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-[#22422e] pb-3">
+                <h3 class="text-base font-bold text-emerald-400">⚽ Bundesliga Torschützenliste</h3>
+                <button onclick="closeLeagueScorersModal()" class="text-rose-400 font-bold text-lg hover:text-rose-300">✕</button>
+            </div>
+            <div class="overflow-y-auto custom-scroll flex-1 pr-1">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="bg-[#0b120e] text-slate-400 uppercase text-[11px] sticky top-0">
+                        <tr>
+                            <th class="px-3 py-2 text-center w-10">Pl.</th>
+                            <th class="px-3 py-2">Spieler</th>
+                            <th class="px-3 py-2 text-center w-16">Tore</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leagueScorersModalBody" class="divide-y divide-[#22422e]/40">
+                        <tr><td colspan="3" class="px-4 py-6 text-center text-slate-500">Lade Torschützen...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <button onclick="closeLeagueScorersModal()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2 rounded-lg transition uppercase text-xs">Schließen</button>
+        </div>
+    </div>
+
     <!-- JAVASCRIPT LOGIK -->
     <script>
-        const GLADBACH_TEAM_ID = "268";
-        let gladbachEvents = [];
-        let autoRefreshTimer = null;
-        let countdownInterval = null;
-        let nextGameDate = null;
+        const SUPABASE_URL = 'https://lhusylpjnujlqomougmg.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_yXEueWILvAq-Vm2VfTuYyg_BIQeE1KK';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        function formatTeamName(name) {
-            if (!name) return 'Unbekannt';
-            if (name.trim().toLowerCase() === 'schott') {
-                return 'TSV Schott Mainz';
-            }
-            return name;
-        }
+        const ADMIN_PIN = "1919";
+        let isAdmin = false;
 
         const historyFacts = [
             "Borussia Mönchengladbach wurde am 1. August 1900 gegründet.",
@@ -195,398 +214,428 @@
             currentFactIdx = (currentFactIdx + 1) % historyFacts.length;
             document.getElementById("history-fact").innerText = historyFacts[currentFactIdx];
         }
-
         document.getElementById("history-fact").innerText = historyFacts[0];
 
-        function switchTab(tabName) {
-            const tabs = ['games', 'standings'];
-            tabs.forEach(t => {
-                const btn = document.getElementById(`tab-btn-${t}`);
-                const content = document.getElementById(`tab-content-${t}`);
-                if (t === tabName) {
-                    btn.className = "px-5 py-2.5 font-bold text-sm rounded-t-xl bg-[#132219] text-emerald-400 border-t-2 border-emerald-500 transition shadow-lg";
-                    content.classList.remove("hidden");
-                } else {
-                    btn.className = "px-5 py-2.5 font-bold text-sm rounded-t-xl bg-[#132219]/50 text-slate-400 hover:text-white transition";
-                    content.classList.add("hidden");
-                }
-            });
-        }
+        let teamLogos = {};
+        let openLigaMatches = {};
+        let gladbachCloudScorers = {};
+        let currentMatchday = parseInt(localStorage.getItem('gladbach_bundesliga_current_matchday')) || 1;
 
-        function onTimeframeChange() {
-            const mode = document.getElementById("timeframe-select").value;
-            const dateWrapper = document.getElementById("single-date-wrapper");
-
-            if (mode === 'single') {
-                dateWrapper.classList.remove("hidden");
-                dateWrapper.classList.add("flex");
-                if (!document.getElementById("single-date-input").value) {
-                    document.getElementById("single-date-input").value = new Date().toISOString().split('T')[0];
-                }
-            } else {
-                dateWrapper.classList.add("hidden");
-                dateWrapper.classList.remove("flex");
+        function toggleAdminMode() {
+            const adminCard = document.getElementById('adminCard');
+            if (isAdmin) {
+                isAdmin = false;
+                adminCard.style.display = 'none';
+                renderMatchdayTable();
+                return;
             }
-            loadBorussiaGames();
-        }
-
-        async function refreshAllData() {
-            loadBorussiaGames();
-            await loadStandings();
-        }
-
-        function formatDateKey(dateObj) {
-            const y = dateObj.getFullYear();
-            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const d = String(dateObj.getDate()).padStart(2, '0');
-            return `${y}${m}${d}`;
-        }
-
-        async function loadBorussiaGames() {
-            const container = document.getElementById("games-container");
-            container.innerHTML = `<div class="text-center py-12 text-slate-400 animate-pulse">⌛ Lade Borussia Pflichtspiele von ESPN...</div>`;
-
-            const mode = document.getElementById("timeframe-select").value;
-            let datesToFetch = [];
-            let baseDate = new Date();
-
-            if (mode === 'next7') {
-                for (let i = 0; i < 7; i++) {
-                    let d = new Date(baseDate);
-                    d.setDate(baseDate.getDate() + i);
-                    datesToFetch.push(formatDateKey(d));
-                }
-            } else if (mode === 'prev7') {
-                for (let i = 6; i >= 0; i--) {
-                    let d = new Date(baseDate);
-                    d.setDate(baseDate.getDate() - i);
-                    datesToFetch.push(formatDateKey(d));
-                }
-            } else if (mode === 'single') {
-                const val = document.getElementById("single-date-input").value;
-                if (val) {
-                    datesToFetch.push(val.replace(/-/g, ''));
-                } else {
-                    datesToFetch.push(formatDateKey(baseDate));
-                }
+            let enteredPin = prompt("Bitte Admin-PIN eingeben:");
+            if (enteredPin === ADMIN_PIN) {
+                isAdmin = true;
+                adminCard.style.display = 'block';
+                renderAll();
+            } else if (enteredPin !== null) {
+                alert("Falsche PIN!");
             }
+        }
 
+        async function loadFromCloud() {
             try {
-                const endpoints = ['ger.1', 'ger.dfb_pokal'];
-                const promises = [];
-                
-                datesToFetch.forEach(dateStr => {
-                    endpoints.forEach(league => {
-                        promises.push(
-                            fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/scoreboard?dates=${dateStr}`)
-                                .then(res => res.json())
-                                .then(data => data.events || [])
-                                .catch(() => [])
-                        );
-                    });
-                });
+                let [matchesRes, logosRes] = await Promise.all([
+                    supabaseClient.from('bundesliga_spiele').select('*'),
+                    supabaseClient.from('bundesliga_vereins_logos').select('*')
+                ]);
 
-                const results = await Promise.all(promises);
-                const eventMap = {};
-                results.flat().forEach(e => {
-                    if (e && e.id) {
-                        const comps = e.competitions?.[0]?.competitors || [];
-                        const isGladbach = comps.some(c => c.team?.id === GLADBACH_TEAM_ID);
-                        if (isGladbach) {
-                            eventMap[e.id] = e;
+                gladbachCloudScorers = {};
+                if (matchesRes.data && Array.isArray(matchesRes.data)) {
+                    matchesRes.data.forEach(row => {
+                        if (row.match_id && row.bayern_scorers) {
+                            gladbachCloudScorers[row.match_id] = row.bayern_scorers;
                         }
-                    }
-                });
+                    });
+                }
 
-                gladbachEvents = Object.values(eventMap);
-                gladbachEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-                checkLiveState();
-                renderBorussiaGames();
-                updateWidgetsComprehensive();
-            } catch (error) {
-                console.error("Fehler beim Abrufen der Spieldaten:", error);
-                container.innerHTML = '<div class="text-center py-8 text-rose-400">⚠️ Fehler beim Laden der Spieldaten von ESPN.</div>';
+                if (logosRes.data) {
+                    teamLogos = {};
+                    logosRes.data.forEach(item => {
+                        if (item.team_name && item.logo_url) {
+                            teamLogos[item.team_name.trim().toLowerCase()] = item.logo_url;
+                        }
+                    });
+                }
+            } catch (e) {
+                console.log('Cloud Ladehinweis:', e);
             }
+            await fetchOpenLigaData();
         }
 
-        async function updateWidgetsComprehensive() {
+        async function fetchOpenLigaData() {
             try {
-                let dates = [];
-                let now = new Date();
-                for (let i = -60; i <= 60; i += 7) {
-                    let d = new Date();
-                    d.setDate(now.getDate() + i);
-                    dates.push(formatDateKey(d));
-                }
+                let response = await fetch('https://api.openligadb.de/getmatchdata/bl1/2026');
+                let data = await response.json();
 
-                const endpoints = ['ger.1', 'ger.dfb_pokal'];
-                const promises = [];
-                dates.forEach(dateStr => {
-                    endpoints.forEach(league => {
-                        promises.push(
-                            fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/scoreboard?dates=${dateStr}`)
-                                .then(res => res.json())
-                                .then(data => data.events || [])
-                                .catch(() => [])
-                        );
-                    });
-                });
+                openLigaMatches = {};
+                if (Array.isArray(data)) {
+                    data.forEach(match => {
+                        let mDay = match.group && match.group.groupOrderID ? match.group.groupOrderID : 1;
+                        if (!openLigaMatches[mDay]) openLigaMatches[mDay] = [];
 
-                const results = await Promise.all(promises);
-                const map = {};
-                results.flat().forEach(e => {
-                    if (e && e.id) {
-                        const comps = e.competitions?.[0]?.competitors || [];
-                        if (comps.some(c => c.team?.id === GLADBACH_TEAM_ID)) {
-                            map[e.id] = e;
+                        let homeTeam = match.team1.teamName;
+                        let awayTeam = match.team2.teamName;
+                        let matchId = 'ol_' + match.matchID;
+
+                        let homeScore = null;
+                        let awayScore = null;
+
+                        if (match.matchIsFinished && match.matchResults && match.matchResults.length > 0) {
+                            let res = match.matchResults.find(r => r.resultTypeID === 2) || match.matchResults[match.matchResults.length - 1];
+                            if (res) {
+                                homeScore = res.pointsTeam1;
+                                awayScore = res.pointsTeam2;
+                            }
+                        } else if (match.matchResults && match.matchResults.length > 0) {
+                            let res = match.matchResults[match.matchResults.length - 1];
+                            if (res && res.pointsTeam1 !== null && res.pointsTeam2 !== null) {
+                                homeScore = res.pointsTeam1;
+                                awayScore = res.pointsTeam2;
+                            }
                         }
-                    }
-                });
 
-                gladbachEvents.forEach(e => map[e.id] = e);
-                const allEvents = Object.values(map);
-                allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+                        let matchDateObj = new Date(match.matchDateTime);
+                        let dateStr = match.matchDateTime ? match.matchDateTime.split('T')[0] : "";
+                        let timeStr = !isNaN(matchDateObj.getTime()) ? matchDateObj.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : "15:30";
 
-                const upcoming = allEvents.find(e => new Date(e.date) > new Date() && !e.status?.type?.completed);
-                if (upcoming) {
-                    nextGameDate = new Date(upcoming.date);
-                    const comp = upcoming.competitions?.[0];
-                    const home = formatTeamName(comp?.competitors?.find(c => c.homeAway === "home")?.team?.displayName || comp?.competitors?.find(c => c.homeAway === "home")?.team?.name);
-                    const away = formatTeamName(comp?.competitors?.find(c => c.homeAway === "away")?.team?.displayName || comp?.competitors?.find(c => c.homeAway === "away")?.team?.name);
-                    document.getElementById("next-game-title").innerText = `${home} vs ${away}`;
-                    startCountdown();
-                } else {
-                    document.getElementById("next-game-title").innerText = "Kein Spiel in Sicht";
-                    document.getElementById("countdown-timer").innerText = "--d --h --m --s";
+                        let apiScorers = [];
+                        if (match.goals && Array.isArray(match.goals)) {
+                            match.goals.forEach(goal => {
+                                let name = goal.goalGetterName;
+                                if (name) {
+                                    let min = (goal.matchMinute !== null && goal.matchMinute !== undefined) ? goal.matchMinute + "'" : "";
+                                    let hPts = (goal.scoreTeam1 !== null && goal.scoreTeam1 !== undefined) ? goal.scoreTeam1 : goal.scoreGoal1;
+                                    let aPts = (goal.scoreTeam2 !== null && goal.scoreTeam2 !== undefined) ? goal.scoreTeam2 : goal.scoreGoal2;
+                                    let scoreStr = (hPts !== undefined && aPts !== undefined) ? ` (${hPts}:${aPts})` : "";
+                                    let minStr = min ? ` (${min})` : "";
+                                    apiScorers.push({
+                                        name: name,
+                                        text: `⚽ ${name}${minStr}${scoreStr}`
+                                    });
+                                }
+                            });
+                        }
+
+                        openLigaMatches[mDay].push({
+                            match_id: matchId,
+                            home: homeTeam,
+                            away: awayTeam,
+                            date: dateStr,
+                            time: timeStr,
+                            homeScore: homeScore,
+                            awayScore: awayScore,
+                            isFinished: match.matchIsFinished,
+                            gladbachScorers: gladbachCloudScorers[matchId] || "",
+                            apiGoals: apiScorers
+                        });
+                    });
                 }
-
-                const finished = allEvents.filter(e => e.status?.type?.completed === true && new Date(e.date) <= new Date());
-                if (finished.length > 0) {
-                    const lastGame = finished[finished.length - 1];
-                    const comp = lastGame.competitions?.[0];
-                    const home = comp?.competitors?.find(c => c.homeAway === "home");
-                    const away = comp?.competitors?.find(c => c.homeAway === "away");
-                    
-                    const homeName = formatTeamName(home?.team?.displayName || home?.team?.name);
-                    const awayName = formatTeamName(away?.team?.displayName || away?.team?.name);
-                    const homeScore = home?.score?.displayValue ?? home?.score ?? '0';
-                    const awayScore = away?.score?.displayValue ?? away?.score ?? '0';
-
-                    document.getElementById("last-game-title").innerText = `${homeName} - ${awayName}`;
-                    document.getElementById("last-game-score").innerText = `${homeScore} : ${awayScore}`;
-                } else {
-                    document.getElementById("last-game-title").innerText = "Kein Spiel gefunden";
-                    document.getElementById("last-game-score").innerText = "- : -";
-                }
-
-            } catch (err) {
-                console.error("Widget Fehler:", err);
+            } catch (e) {
+                console.error("Fehler beim Abrufen von OpenLigaDB:", e);
             }
+
+            renderAll();
         }
 
-        function startCountdown() {
-            if (countdownInterval) clearInterval(countdownInterval);
+        function changeMatchday(amount) {
+            currentMatchday = Math.max(1, Math.min(34, currentMatchday + amount));
+            localStorage.setItem('gladbach_bundesliga_current_matchday', currentMatchday);
+            renderAll();
+        }
+
+        function renderAll() {
+            document.getElementById('matchdayDisplay').textContent = "Spieltag " + currentMatchday;
+            document.getElementById('adminMatchdayLabel').textContent = "Spieltag " + currentMatchday;
+            document.getElementById('matchdayTableHeader').textContent = "Spieltag " + currentMatchday + " — Spiele & Ergebnisse";
             
-            countdownInterval = setInterval(() => {
-                if (!nextGameDate) return;
-                const now = new Date();
-                const diff = nextGameDate - now;
-
-                if (diff <= 0) {
-                    document.getElementById("countdown-timer").innerText = "ANSPIFF!";
-                    clearInterval(countdownInterval);
-                    return;
-                }
-
-                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-                document.getElementById("countdown-timer").innerText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-            }, 1000);
+            renderMatchdayTable();
+            renderTable();
+            updateLastGameWidget();
+            if (isAdmin) renderInputForm();
         }
 
-        function checkLiveState() {
-            const isLive = gladbachEvents.some(e => e.status?.type?.state === "in");
-            const liveIndicator = document.getElementById("live-indicator");
+        function isGladbach(name) {
+            if (!name) return false;
+            let n = name.toLowerCase();
+            return n.includes("gladbach") || n.includes("borussia mönchengladbach");
+        }
 
-            if (isLive) {
-                liveIndicator.classList.remove("hidden");
-                liveIndicator.classList.add("flex");
-                if (!autoRefreshTimer) {
-                    autoRefreshTimer = setInterval(refreshAllData, 15000);
-                }
+        function getTeamHtml(teamName, alignRight = false) {
+            let logoUrl = teamLogos[teamName.trim().toLowerCase()] || `https://a.espncdn.com/i/teamlogos/soccer/500/268.png`;
+            let logoHtml = `<img src="${logoUrl}" alt="${teamName}" class="w-5 h-5 object-contain inline-block shrink-0">`;
+
+            if (alignRight) {
+                return `<div class="flex items-center justify-end gap-2 text-xs md:text-sm"><span>${teamName}</span>${logoHtml}</div>`;
             } else {
-                liveIndicator.classList.add("hidden");
-                liveIndicator.classList.remove("flex");
-                if (autoRefreshTimer) {
-                    clearInterval(autoRefreshTimer);
-                    autoRefreshTimer = null;
-                }
+                return `<div class="flex items-center gap-2 text-xs md:text-sm">${logoHtml}<span>${teamName}</span></div>`;
             }
         }
 
-        function renderBorussiaGames() {
-            const container = document.getElementById("games-container");
-            container.innerHTML = "";
+        function renderMatchdayTable() {
+            let tbody = document.getElementById('matchdayTableBody');
+            tbody.innerHTML = '';
+            let existingMatches = openLigaMatches[currentMatchday] || [];
 
-            if (gladbachEvents.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-slate-500">Für diesen Zeitraum sind keine Pflichtspiele von Borussia Mönchengladbach hinterlegt.</div>`;
+            if (existingMatches.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">Keine Spiele für Spieltag ' + currentMatchday + ' gefunden.</td></tr>';
                 return;
             }
 
-            const grid = document.createElement("div");
-            grid.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
-            container.appendChild(grid);
+            existingMatches.forEach((m) => {
+                let hasResult = m.homeScore !== undefined && m.homeScore !== null && m.awayScore !== undefined && m.awayScore !== null;
+                let formattedDate = m.date ? m.date.split('-').reverse().join('.') : '-';
+                let timeStr = m.time ? ' ' + m.time + ' Uhr' : '';
+                
+                let gladMatch = isGladbach(m.home) || isGladbach(m.away);
 
-            gladbachEvents.forEach(event => {
-                const competition = event.competitions?.[0];
-                const home = competition?.competitors?.find(c => c.homeAway === "home");
-                const away = competition?.competitors?.find(c => c.homeAway === "away");
-
-                const status = event.status?.type;
-                const isLive = status?.state === "in";
-                const isCompleted = status?.completed;
-
-                const gameDate = new Date(event.date);
-                const dateStr = gameDate.toLocaleDateString("de-DE", { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
-                const timeStr = gameDate.toLocaleTimeString("de-DE", { hour: '2-digit', minute: '2-digit' }) + " Uhr";
-
-                let statusBadgeClass = "bg-[#0b120e] text-slate-300 border border-[#22422e]";
-                let statusText = `${dateStr} • ${timeStr}`;
-
-                if (isLive) {
-                    statusBadgeClass = "bg-emerald-950 text-emerald-300 border border-emerald-600 live-dot font-bold";
-                    statusText = `🔴 LIVE - ${status?.detail || 'In Progress'}`;
-                } else if (isCompleted) {
-                    statusBadgeClass = "bg-emerald-950/80 text-emerald-300 border border-emerald-700 font-bold";
-                    statusText = `${dateStr} • ENDE`;
+                let resultDisplay = hasResult ? `<strong class="text-sm md:text-base">${m.homeScore}:${m.awayScore}</strong>` : '<span class="text-slate-500 italic">vs</span>';
+                if (hasResult && m.isFinished) {
+                    resultDisplay += '<div class="text-[10px] text-emerald-400 mt-0.5">(Endstand)</div>';
+                } else if (hasResult) {
+                    resultDisplay += '<div class="text-[10px] text-amber-400 mt-0.5 live-dot">● (Live)</div>';
                 }
 
-                const homeScore = (home?.score !== undefined && home?.score !== null) ? (typeof home.score === 'object' ? home.score.displayValue : home.score) : '-';
-                const awayScore = (away?.score !== undefined && away?.score !== null) ? (typeof away.score === 'object' ? away.score.displayValue : away.score) : '-';
-
-                const homeName = formatTeamName(home?.team?.displayName || home?.team?.name);
-                const awayName = formatTeamName(away?.team?.displayName || away?.team?.name);
-
-                const homeId = home?.team?.id || '';
-                const awayId = away?.team?.id || '';
-                const homeLogo = home?.team?.logo || (homeId ? `https://a.espncdn.com/i/teamlogos/soccer/500/${homeId}.png` : '');
-                const awayLogo = away?.team?.logo || (awayId ? `https://a.espncdn.com/i/teamlogos/soccer/500/${awayId}.png` : '');
-
-                let tournamentName = competition?.type?.text || 'Bundesliga';
-                if (event.uid && event.uid.includes('dfb_pokal')) {
-                    tournamentName = "DFB-Pokal";
+                let scorersText = m.gladbachScorers || "";
+                if (scorersText.trim() !== "") {
+                    resultDisplay += `<div class="text-[11px] text-slate-400 mt-1">⚽ ${scorersText}</div>`;
+                } else if (m.apiGoals && m.apiGoals.length > 0) {
+                    let apiGoalsTexts = m.apiGoals.map(g => g.text);
+                    resultDisplay += `<div class="text-[11px] text-slate-400 mt-1">${apiGoalsTexts.join('<br>')}</div>`;
                 }
 
-                const card = document.createElement("div");
-                card.className = "bg-[#132219]/60 p-5 rounded-xl border border-[#22422e] shadow-lg space-y-4 hover:border-emerald-500/50 transition backdrop-blur-sm";
+                let tr = document.createElement('tr');
+                let rowClass = "hover:bg-[#132219]/40 transition";
+                if (gladMatch) {
+                    rowClass = "bg-emerald-600/15 border-l-4 border-emerald-400 hover:bg-emerald-600/25 transition";
+                }
+                tr.className = rowClass;
 
-                card.innerHTML = `
-                    <div class="flex justify-between items-center border-b border-[#22422e] pb-2">
-                        <span class="text-emerald-400 text-xs font-bold uppercase tracking-wider">${tournamentName}</span>
-                        <span class="px-2.5 py-0.5 rounded-full text-[11px] ${statusBadgeClass}">${statusText}</span>
-                    </div>
+                let homeHtml = getTeamHtml(m.home, true);
+                let awayHtml = getTeamHtml(m.away, false);
 
-                    <div class="space-y-3">
-                        <!-- HEIMTEAM -->
-                        <div class="flex justify-between items-center">
-                            <div class="flex items-center gap-3">
-                                <img src="${homeLogo}" class="w-8 h-8 object-contain filter drop-shadow" alt="Logo">
-                                <span class="font-bold text-white text-base ${home?.team?.id === GLADBACH_TEAM_ID ? 'text-emerald-400 underline decoration-emerald-500' : ''}">${homeName}</span>
-                            </div>
-                            <span class="text-2xl font-black ${home?.winner ? 'text-emerald-400' : 'text-slate-200'}">
-                                ${homeScore}
-                            </span>
-                        </div>
+                if (isGladbach(m.home)) homeHtml = `<span class="text-emerald-400 font-bold">${homeHtml}</span>`;
+                if (isGladbach(m.away)) awayHtml = `<span class="text-emerald-400 font-bold">${awayHtml}</span>`;
 
-                        <!-- AUSWÄRTSTEAM -->
-                        <div class="flex justify-between items-center">
-                            <div class="flex items-center gap-3">
-                                <img src="${awayLogo}" class="w-8 h-8 object-contain filter drop-shadow" alt="Logo">
-                                <span class="font-bold text-white text-base ${away?.team?.id === GLADBACH_TEAM_ID ? 'text-emerald-400 underline decoration-emerald-500' : ''}">${awayName}</span>
-                            </div>
-                            <span class="text-2xl font-black ${away?.winner ? 'text-emerald-400' : 'text-slate-200'}">
-                                ${awayScore}
-                            </span>
-                        </div>
-                    </div>
+                tr.innerHTML = `
+                    <td class="px-3 py-2.5 text-[11px] md:text-xs text-slate-400 whitespace-nowrap">${formattedDate}${timeStr}</td>
+                    <td class="px-3 py-2.5 text-right">${homeHtml}</td>
+                    <td class="px-3 py-2.5 text-center">${resultDisplay}</td>
+                    <td class="px-3 py-2.5">${awayHtml}</td>
                 `;
-                grid.appendChild(card);
+                tbody.appendChild(tr);
             });
         }
 
-        async function loadStandings() {
-            const url = "https://site.api.espn.com/apis/v2/sports/soccer/ger.1/standings";
-            const tbody = document.getElementById("table-body");
+        function renderTable() {
+            let tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            let stats = {};
 
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-
-                const entries = data.children?.[0]?.standings?.entries || data.standings?.entries || [];
-                tbody.innerHTML = "";
-
-                if (!entries || entries.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-slate-500">Keine Tabellendaten gefunden.</td></tr>';
-                    return;
+            let allTeams = [];
+            Object.values(openLigaMatches).forEach(matchList => {
+                if (Array.isArray(matchList)) {
+                    matchList.forEach(m => {
+                        if (!allTeams.includes(m.home)) allTeams.push(m.home);
+                        if (!allTeams.includes(m.away)) allTeams.push(m.away);
+                    });
                 }
+            });
 
-                entries.forEach((entry, idx) => {
-                    const team = entry.team;
-                    const stats = entry.stats || [];
-                    const getStat = (name) => stats.find(s => s.name === name)?.displayValue || "0";
+            allTeams.forEach(t => { stats[t] = { name: t, played: 0, won: 0, draw: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 }; });
 
-                    const rank = idx + 1;
-                    const isGladbach = team?.id === GLADBACH_TEAM_ID;
-                    const games = getStat("gamesPlayed");
-                    const wins = getStat("wins");
-                    const draws = getStat("ties");
-                    const losses = getStat("losses");
-                    const points = getStat("points");
-                    const diff = getStat("pointDifferential");
-                    const goalsFor = getStat("pointsFor");
-                    const goalsAgainst = getStat("pointsAgainst");
-
-                    let rowClass = idx % 2 === 0 ? "bg-[#132219]/30 hover:bg-[#132219]/70 transition" : "bg-[#132219]/10 hover:bg-[#132219]/70 transition";
-                    if (isGladbach) {
-                        rowClass = "bg-emerald-600/20 border-l-4 border-emerald-400 hover:bg-emerald-600/30 transition font-bold";
-                    }
-
-                    const teamId = team?.id || '';
-                    const teamLogo = team?.logos?.[0]?.href || (teamId ? `https://a.espncdn.com/i/teamlogos/soccer/500/${teamId}.png` : '');
-
-                    const row = document.createElement("tr");
-                    row.className = rowClass;
-
-                    row.innerHTML = `
-                        <td class="px-3 py-3 ${isGladbach ? 'text-emerald-400 font-black' : 'text-slate-400'}">${rank}</td>
-                        <td class="px-4 py-3 font-semibold text-white flex items-center gap-3">
-                            <img src="${teamLogo}" class="w-6 h-6 object-contain" alt="Logo">
-                            <span class="${isGladbach ? 'text-emerald-400 text-base' : ''}">${formatTeamName(team?.displayName)}</span>
-                        </td>
-                        <td class="px-3 py-3 text-center text-slate-300">${games}</td>
-                        <td class="px-3 py-3 text-center text-slate-300">${wins}</td>
-                        <td class="px-3 py-3 text-center text-slate-300">${draws}</td>
-                        <td class="px-3 py-3 text-center text-slate-300">${losses}</td>
-                        <td class="px-3 py-3 text-center text-slate-400">${goalsFor}:${goalsAgainst}</td>
-                        <td class="px-3 py-3 text-center font-medium ${parseInt(diff) > 0 ? 'text-emerald-400' : (parseInt(diff) < 0 ? 'text-rose-400' : 'text-slate-400')}">${diff}</td>
-                        <td class="px-4 py-3 text-center font-black text-emerald-400 text-base">${points}</td>
-                    `;
-                    tbody.appendChild(row);
+            Object.values(openLigaMatches).forEach(matchList => {
+                if (!Array.isArray(matchList)) return;
+                matchList.forEach(m => {
+                    if (m.homeScore === undefined || m.homeScore === null || m.awayScore === undefined || m.awayScore === null) return;
+                    let h = m.home, a = m.away;
+                    if (!stats[h] || !stats[a]) return;
+                    stats[h].played++; stats[a].played++;
+                    stats[h].goalsFor += m.homeScore; stats[h].goalsAgainst += m.awayScore;
+                    stats[a].goalsFor += m.awayScore; stats[a].goalsAgainst += m.homeScore;
+                    if (m.homeScore > m.awayScore) { stats[h].won++; stats[h].points += 3; stats[a].lost++; }
+                    else if (m.homeScore < m.awayScore) { stats[a].won++; stats[a].points += 3; stats[h].lost++; }
+                    else { stats[h].draw++; stats[h].points += 1; stats[a].draw++; stats[a].points += 1; }
                 });
+            });
 
-            } catch (error) {
-                console.error("Fehler beim Abrufen der Tabelle:", error);
-                tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-rose-400">Fehler beim Laden der Tabelle.</td></tr>';
+            let sorted = Object.values(stats).sort((a, b) => b.points !== a.points ? b.points - a.points : (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst));
+            
+            if (sorted.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="px-4 py-6 text-center text-slate-500">Tabelle wird nach den ersten Spielen berechnet.</td></tr>`;
+                return;
+            }
+
+            sorted.forEach((s, idx) => {
+                let glad = isGladbach(s.name);
+                let row = document.createElement('tr');
+                let diff = s.goalsFor - s.goalsAgainst;
+
+                let rowClass = idx % 2 === 0 ? "bg-[#132219]/30 hover:bg-[#132219]/70 transition" : "bg-[#132219]/10 hover:bg-[#132219]/70 transition";
+                if (glad) {
+                    rowClass = "bg-emerald-600/20 border-l-4 border-emerald-400 hover:bg-emerald-600/30 transition font-bold";
+                }
+                row.className = rowClass;
+
+                let teamCellHtml = getTeamHtml(s.name, false);
+
+                row.innerHTML = `
+                    <td class="px-2.5 py-2.5 text-xs ${glad ? 'text-emerald-400 font-black' : 'text-slate-400'}">${idx + 1}.</td>
+                    <td class="px-3 py-2.5 font-semibold text-white text-xs md:text-sm">${teamCellHtml}</td>
+                    <td class="px-2.5 py-2.5 text-center text-xs text-slate-300">${s.played}</td>
+                    <td class="px-2.5 py-2.5 text-center text-xs text-slate-300">${s.won}</td>
+                    <td class="px-2.5 py-2.5 text-center text-xs text-slate-300">${s.draw}</td>
+                    <td class="px-2.5 py-2.5 text-center text-xs text-slate-300">${s.lost}</td>
+                    <td class="px-2.5 py-2.5 text-center text-xs text-slate-400">${s.goalsFor}:${s.goalsAgainst}</td>
+                    <td class="px-2.5 py-2.5 text-center text-xs font-medium ${diff > 0 ? 'text-emerald-400' : (diff < 0 ? 'text-rose-400' : 'text-slate-400')}">${diff > 0 ? '+' + diff : diff}</td>
+                    <td class="px-3 py-2.5 text-center font-black text-emerald-400 text-xs md:text-sm">${s.points}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateLastGameWidget() {
+            let lastMatch = null;
+            for (let mDay = currentMatchday; mDay >= 1; mDay--) {
+                let matches = openLigaMatches[mDay] || [];
+                let gladMatch = matches.find(m => (isGladbach(m.home) || isGladbach(m.away)) && m.homeScore !== null);
+                if (gladMatch) {
+                    lastMatch = gladMatch;
+                    break;
+                }
+            }
+
+            if (lastMatch) {
+                document.getElementById("last-game-title").innerText = `${lastMatch.home} - ${lastMatch.away}`;
+                document.getElementById("last-game-score").innerText = `${lastMatch.homeScore} : ${lastMatch.awayScore}`;
+            } else {
+                document.getElementById("last-game-title").innerText = "Noch kein Ergebnis";
+                document.getElementById("last-game-score").innerText = "- : -";
             }
         }
 
+        function openLeagueScorersModal() {
+            let tbody = document.getElementById('leagueScorersModalBody');
+            tbody.innerHTML = '';
+            let scorersMap = {};
+
+            Object.values(openLigaMatches).forEach(matchList => {
+                if (!Array.isArray(matchList)) return;
+                matchList.forEach(m => {
+                    if (m.apiGoals && Array.isArray(m.apiGoals)) {
+                        m.apiGoals.forEach(g => {
+                            let key = g.name.toLowerCase();
+                            if (!scorersMap[key]) scorersMap[key] = { name: g.name, goals: 0 };
+                            scorersMap[key].goals++;
+                        });
+                    }
+                    if (m.gladbachScorers && typeof m.gladbachScorers === 'string') {
+                        m.gladbachScorers.split(',').forEach(entry => {
+                            let parts = entry.trim().split('(');
+                            let pName = parts[0].trim();
+                            if (pName) {
+                                let count = 1;
+                                if (parts[1]) {
+                                    let numMatch = parts[1].match(/\d+/);
+                                    if (numMatch) count = parseInt(numMatch[0]);
+                                }
+                                let key = pName.toLowerCase();
+                                if (!scorersMap[key]) scorersMap[key] = { name: pName, goals: 0 };
+                                scorersMap[key].goals = Math.max(scorersMap[key].goals, count);
+                            }
+                        });
+                    }
+                });
+            });
+
+            let scorersArray = Object.values(scorersMap);
+            if (scorersArray.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-6 text-center text-slate-500">Noch keine Torschützen erfasst.</td></tr>`;
+            } else {
+                scorersArray.sort((a, b) => b.goals - a.goals);
+                scorersArray.forEach((s, idx) => {
+                    let tr = document.createElement('tr');
+                    tr.className = "hover:bg-[#132219]/40 transition";
+                    tr.innerHTML = `
+                        <td class="px-3 py-2 text-center font-bold text-slate-400 text-xs">${idx + 1}.</td>
+                        <td class="px-3 py-2 font-semibold text-white text-xs">${s.name}</td>
+                        <td class="px-3 py-2 text-center font-black text-emerald-400 text-xs">${s.goals}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            document.getElementById('leagueScorersModal').classList.remove('hidden');
+            document.getElementById('leagueScorersModal').classList.add('flex');
+        }
+
+        function closeLeagueScorersModal() {
+            document.getElementById('leagueScorersModal').classList.add('hidden');
+            document.getElementById('leagueScorersModal').classList.remove('flex');
+        }
+
+        function renderInputForm() {
+            let container = document.getElementById('matchInputsContainer');
+            container.innerHTML = '';
+            let existingMatches = openLigaMatches[currentMatchday] || [];
+            let gladMatches = existingMatches.filter(m => isGladbach(m.home) || isGladbach(m.away));
+
+            if (gladMatches.length === 0) {
+                container.innerHTML = `<div class="text-slate-400 text-xs">Kein Gladbach-Spiel an diesem Spieltag.</div>`;
+                return;
+            }
+
+            gladMatches.forEach((m) => {
+                let div = document.createElement('div');
+                div.className = "bg-[#0b120e] p-2.5 rounded-lg border border-[#22422e] space-y-1.5";
+                div.innerHTML = `
+                    <div class="text-[11px] font-bold text-emerald-400">${m.home} vs ${m.away}</div>
+                    <input type="text" id="bs_${m.match_id}" class="w-full bg-[#132219] border border-[#22422e] text-white px-2.5 py-1 rounded text-xs focus:outline-none focus:border-emerald-500" value="${m.gladbachScorers || ''}" placeholder="Torschützen (z.B. Plea (2), Honorat)">
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function saveAllScorers() {
+            let existingMatches = openLigaMatches[currentMatchday] || [];
+            let gladMatches = existingMatches.filter(m => isGladbach(m.home) || isGladbach(m.away));
+
+            for (let m of gladMatches) {
+                let inputElem = document.getElementById('bs_' + m.match_id);
+                if (inputElem) {
+                    let val = inputElem.value.trim();
+                    m.gladbachScorers = val;
+                    gladbachCloudScorers[m.match_id] = val;
+
+                    await supabaseClient.from('bundesliga_spiele').upsert({
+                        match_id: m.match_id,
+                        matchday: currentMatchday,
+                        home_team: m.home,
+                        away_team: m.away,
+                        bayern_scorers: val
+                    }, { onConflict: 'match_id' });
+                }
+            }
+
+            renderAll();
+            alert("Gladbach-Torschützen erfolgreich gespeichert!");
+        }
+
+        async function refreshAllData() {
+            await loadFromCloud();
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
-            loadBorussiaGames();
-            loadStandings();
+            loadFromCloud();
+            setInterval(() => {
+                if (!isAdmin) fetchOpenLigaData();
+            }, 60000);
         });
     </script>
 </body>
