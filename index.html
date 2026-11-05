@@ -23,14 +23,13 @@
             --gladbach-dark: #0a1711;
             --gladbach-dark-card: #0e1a14;
             --gladbach-bright-green: #22c55e;
+            --live-red: #ff3333;
         }
 
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
-            margin: 0;
             padding: 15px;
             display: flex;
             justify-content: center;
@@ -45,6 +44,13 @@
             padding: 20px;
             box-shadow: 0 4px 20px rgba(0, 153, 68, 0.2);
         }
+
+        /* TOR-ALARM / VAR BANNER */
+        #goalAlertBanner { display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #0e1a14, #133822); border: 2px solid var(--gladbach-green); box-shadow: 0 10px 30px rgba(0,153,68,0.4); border-radius: 14px; padding: 18px 24px; z-index: 2000; width: 90%; max-width: 480px; text-align: center; animation: bounce-in 0.5s ease; cursor: pointer; }
+        @keyframes bounce-in { 0% { transform: translate(-50%, -30px); opacity: 0; } 100% { transform: translate(-50%, 0); opacity: 1; } }
+        .goal-alert-title { font-size: 1.2rem; font-weight: 900; color: var(--gladbach-bright-green); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .goal-alert-scorer { font-size: 1rem; font-weight: bold; margin-bottom: 8px; color: #fff; }
+        .goal-alert-match { font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 6px; }
 
         /* LAUFBAND-DESIGN */
         .ticker-wrapper {
@@ -645,6 +651,14 @@
 </head>
 <body>
 
+<!-- Live Tor-Alarm / VAR Popup -->
+<div id="goalAlertBanner" onclick="hideGoalAlert()">
+    <div class="goal-alert-title" id="goalAlertTeam">⚽ Tor!</div>
+    <div class="goal-alert-scorer" id="goalAlertScorer">Torschütze & Minute</div>
+    <div class="goal-alert-match" id="goalAlertMatch">Spielstand & Paarung</div>
+    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 8px;">(Zum Schließen antippen)</div>
+</div>
+
 <div class="container">
     <!-- LAUFBAND OBEN -->
     <div class="ticker-wrapper">
@@ -1244,6 +1258,8 @@
     let teamLogos = {};
     let leagueMatches = {};
     let latestLiveGoalsTicker = [];
+    let previousEspnScores = {};
+    let pushedUpcomingMatchdayKeys = new Set();
 
     const matchdayFridays = {
         1: "2026-08-28", 2: "2026-09-04", 3: "2026-09-11", 4: "2026-09-18", 5: "2026-10-09",
@@ -1284,8 +1300,6 @@
     let currentMatchday = determineCurrentMatchday();
     let isInitialized = false;
     let nextMatchDateTime = null;
-    let previousEspnScores = {};
-    let pushedUpcomingMatchdayKeys = new Set();
 
     function urlBase64ToUint8Array(base64String) {
         const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -1353,10 +1367,12 @@
         }
     }
 
-    async function triggerGoalPush(home, away, hScore, aScore, latestScorer, matchId, scoringTeamName) {
+    async function checkAllGoalsAndNotify(home, away, hScore, aScore, latestScorer, matchId, scoringTeam) {
         if (!latestScorer || latestScorer.includes("Tor") || latestScorer.trim() === "⚽") return;
 
-        let uniqueGoalId = `${matchId}_${latestScorer}`;
+        let uniqueGoalId = `${matchId}_${hScore}:${aScore}_${latestScorer}`;
+        let cleanPlayer = latestScorer.replace(/⚽\s*/, '').replace(/\(\d+['']\)/, '').replace('(Pen)', '').replace('(ET)', '').trim();
+        let minStr = latestScorer.match(/\(\d+['']\)/) ? ` ${latestScorer.match(/\(\d+['']\)/)[0]}` : '';
 
         try {
             let { data: existing, error: checkError } = await supabaseClient
@@ -1377,16 +1393,60 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             table: 'push_subscriptions_gladbach',
-                            title: `Tor für ${scoringTeamName}`,
-                            body: `Torschütze ${latestScorer}\nBegegnung: ${home} vs ${away} (${hScore}:${aScore})`
+                            title: `⚽ TOR! für ${scoringTeam} zum ${hScore}:${aScore}`,
+                            body: `Torschütze: ${cleanPlayer}${minStr}\n${home} : ${away} (${hScore}:${aScore})`
                         })
                     });
                 }
             }
         } catch (e) {
-            console.error("Fehler beim Tor-Cache:", e);
+            console.error("Fehler beim Tor-Cache & Push:", e);
         }
     }
+
+    async function recordVarCorrectionAndNotify(matchId, home, away, homeScore, awayScore) {
+        let pushTitle = `⚠️ Bundesliga: Tor-Korrektur (VAR)!`;
+        let pushBody = `Das Tor wurde nach Videobeweis zurückgenommen!\nNeuer Spielstand: ${home} - ${away} (${homeScore}:${awayScore})`;
+
+        showVarCorrectionAlert(`${home} : ${away} (${homeScore}:${awayScore})`);
+
+        try {
+            await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    table: 'push_subscriptions_gladbach',
+                    title: pushTitle,
+                    body: pushBody
+                })
+            });
+        } catch (e) {
+            console.error("Fehler beim VAR-Push:", e);
+        }
+    }
+
+    function showGoalAlert(teamName, scorerInfo, matchInfo) {
+        const banner = document.getElementById("goalAlertBanner");
+        banner.style.background = "linear-gradient(135deg, #0e1a14, #133822)";
+        document.getElementById("goalAlertTeam").textContent = `⚽ Tor für ${teamName}!`;
+        document.getElementById("goalAlertScorer").textContent = scorerInfo;
+        document.getElementById("goalAlertMatch").textContent = matchInfo;
+        banner.style.display = "block";
+        setTimeout(() => { hideGoalAlert(); }, 10000);
+    }
+
+    function showVarCorrectionAlert(matchInfo) {
+        const banner = document.getElementById("goalAlertBanner");
+        banner.style.background = "linear-gradient(135deg, #36280c, #634d1e)";
+        document.getElementById("goalAlertTeam").textContent = "⚠️ Bundesliga: Tor-Korrektur (VAR)!";
+        document.getElementById("goalAlertScorer").textContent = "Das Tor wurde nach Videobeweis zurückgenommen!";
+        document.getElementById("goalAlertMatch").textContent = `Neuer Spielstand: ${matchInfo}`;
+        banner.style.display = "block";
+        setTimeout(() => { hideGoalAlert(); }, 10000);
+    }
+
+    function hideGoalAlert() { document.getElementById("goalAlertBanner").style.display = "none"; }
 
     function checkUpcomingMatchdayPush() {
         let now = new Date();
@@ -1602,7 +1662,10 @@
                         let prev = previousEspnScores[matchId];
                         if (prev !== undefined && isLive) {
                             if (homeScoreVal > prev.home || awayScoreVal > prev.away) {
-                                triggerGoalPush(homeComp.team.displayName, awayComp.team.displayName, homeScoreVal, awayScoreVal, latestScorerText, matchId, scoringTeamName);
+                                showGoalAlert(scoringTeamName, latestScorerText, `${homeComp.team.displayName} - ${awayComp.team.displayName}`);
+                                checkAllGoalsAndNotify(homeComp.team.displayName, awayComp.team.displayName, homeScoreVal, awayScoreVal, latestScorerText, matchId, scoringTeamName);
+                            } else if (homeScoreVal < prev.home || awayScoreVal < prev.away) {
+                                recordVarCorrectionAndNotify(matchId, homeComp.team.displayName, awayComp.team.displayName, homeScoreVal, awayScoreVal);
                             }
                         }
                         previousEspnScores[matchId] = { home: homeScoreVal, away: awayScoreVal };
